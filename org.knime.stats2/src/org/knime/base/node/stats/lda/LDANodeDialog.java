@@ -35,6 +35,8 @@ public class LDANodeDialog extends NodeDialogPane {
     private DialogComponentNumber m_k;
     private DialogComponentColumnNameSelection m_classCol;
     private DialogComponentColumnFilter2 m_usedCols;
+
+    private DataTableSpec[] m_specs;
     /**
      * New pane for configuring the node.
      */
@@ -45,6 +47,10 @@ public class LDANodeDialog extends NodeDialogPane {
         m_usedCols = new DialogComponentColumnFilter2(
                                                LDANodeModel.createUsedColsSettingsModel(), 0);
 
+        m_k = new DialogComponentNumber(new SettingsModelIntegerBounded(LDANodeModel.K_CFG,
+            1, 1, Integer.MAX_VALUE), "Dimensions", 1);
+        m_classCol.getModel().addChangeListener(cl -> updateSpinnerModel());
+
         m_panel = new JPanel();
         BoxLayout bl = new BoxLayout(m_panel, 1);
         m_panel.setLayout(bl);
@@ -53,33 +59,41 @@ public class LDANodeDialog extends NodeDialogPane {
         addTab("Settings", m_panel);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
-            throws NotConfigurableException {
-        m_classCol.loadSettingsFrom(settings, specs);
-        m_usedCols.loadSettingsFrom(settings, specs);
-
-        int val = settings.getInt(LDANodeModel.K_CFG, 1);
+    private void updateSpinnerModel() {
+        if (m_specs == null) {
+            return;
+        }
+        int val = ((SettingsModelIntegerBounded)m_k.getModel()).getIntValue();
         int max = Integer.MAX_VALUE;
         if (m_classCol.getSelected() != null && m_classCol.getSelected().length() > 0) {
-            Set<DataCell> vals = specs[0].getColumnSpec(m_classCol.getSelected()).getDomain().getValues();
-            if (vals != null) {
+            Set<DataCell> vals = m_specs[0].getColumnSpec(m_classCol.getSelected()).getDomain().getValues();
+            if (vals != null && !vals.isEmpty()) {
                 max = vals.size() - 1;
-                if (val > max) {
-                    val = max;
-                }
+                val = Math.min(val, max);
             }
         }
-
         m_k = new DialogComponentNumber(new SettingsModelIntegerBounded(LDANodeModel.K_CFG,
             val, 1, max), "Dimensions", 1);
         if (m_panel.getComponents().length > 2) {
             m_panel.remove(0);
         }
         m_panel.add(m_k.getComponentPanel(), 0);
+        m_panel.revalidate();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void loadSettingsFrom(final NodeSettingsRO settings, final DataTableSpec[] specs)
+            throws NotConfigurableException {
+        m_k.loadSettingsFrom(settings, specs);
+        m_usedCols.loadSettingsFrom(settings, specs);
+        m_specs = specs;
+
+        // Needs to be loaded last as this will trigger the listener updating the spinner bounds
+        // which expects the value for k to be already loaded.
+        m_classCol.loadSettingsFrom(settings, specs);
     }
 
     /**
