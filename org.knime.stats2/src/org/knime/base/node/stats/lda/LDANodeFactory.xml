@@ -16,7 +16,7 @@
             More information can be found on <a href="http://en.wikipedia.org/wiki/Linear_discriminant_analysis">Wikipedia</a>.
         </intro>
 
-        <option name="Dimensions">The number of dimensions to reduce to. This can be at most the number of classes minus one.</option>
+        <option name="Dimensions">The number of dimensions to reduce to. This can be at most the minimum of the number of classes minus one and the number of selected columns.</option>
         <option name="Class column">The column containing class information</option>
         <option name="Column selection">The columns of the original dimensions</option>
     </fullDescription>

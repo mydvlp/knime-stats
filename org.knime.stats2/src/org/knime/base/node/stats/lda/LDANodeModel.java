@@ -27,13 +27,14 @@ import org.knime.core.node.NodeSettingsWO;
 import org.knime.core.node.defaultnodesettings.SettingsModelColumnFilter2;
 import org.knime.core.node.defaultnodesettings.SettingsModelColumnName;
 import org.knime.core.node.defaultnodesettings.SettingsModelInteger;
+import org.knime.core.node.defaultnodesettings.SettingsModelString;
 import org.knime.core.node.port.PortObject;
 import org.knime.core.node.port.PortObjectSpec;
 import org.knime.core.node.port.PortType;
 import org.knime.core.node.util.filter.NameFilterConfiguration.FilterResult;
 
 /**
- * This is the model implementation of PMMLToJavascriptCompiler.
+ * This is the model implementation of Linear Discriminant Analysis.
  *
  *
  * @author Alexander Fillbrunn
@@ -43,17 +44,17 @@ public class LDANodeModel extends NodeModel {
     /**
      * The configuration key for the number of dimensions.
      */
-    static final String K_CFG = "k";
+    private static final String K_CFG = "k";
 
     /**
      * The configuration key for the used columns.
      */
-    static final String USED_COLS_CFG = "usedCols";
+    private static final String USED_COLS_CFG = "usedCols";
 
     /**
      * The configuration key for the class column.
      */
-    static final String CLASS_COL_CFG = "classCols";
+    private static final String CLASS_COL_CFG = "classCols";
 
     /**
      * Constructor for the node model.
@@ -84,15 +85,15 @@ public class LDANodeModel extends NodeModel {
      * Creates a settings model for the class column.
      * @return the settings model
      */
-    public static SettingsModelColumnName createClassColSettingsModel() {
-        return new SettingsModelColumnName(CLASS_COL_CFG, null);
+    public static SettingsModelString createClassColSettingsModel() {
+        return new SettingsModelString(CLASS_COL_CFG, null);
     }
 
     private SettingsModelInteger m_k = createKSettingsModel();
 
     private SettingsModelColumnFilter2 m_usedCols = createUsedColsSettingsModel();
 
-    private SettingsModelColumnName m_classColumn = createClassColSettingsModel();
+    private SettingsModelString m_classColumn = createClassColSettingsModel();
 
     /**
      * {@inheritDoc}
@@ -105,7 +106,7 @@ public class LDANodeModel extends NodeModel {
         DataTableSpec inSpec = inTable.getDataTableSpec();
         FilterResult res = m_usedCols.applyTo(inSpec);
 
-        if (m_classColumn.getColumnName() == null) {
+        if (m_classColumn.getStringValue() == null) {
             for (String col : inSpec.getColumnNames()) {
                 if (inSpec.getColumnSpec(col).getType().isCompatible(NominalValue.class)) {
                     m_classColumn.setStringValue(col);
@@ -124,7 +125,7 @@ public class LDANodeModel extends NodeModel {
         for (int i = 0; i < indices.length; i++) {
             indices[i] = inSpec.findColumnIndex(res.getIncludes()[i]);
         }
-        int classCol = inSpec.findColumnIndex(m_classColumn.getColumnName());
+        int classCol = inSpec.findColumnIndex(m_classColumn.getStringValue());
 
         DataContainer dc = exec.createDataContainer(createSpec(inSpec));
 
@@ -179,7 +180,7 @@ public class LDANodeModel extends NodeModel {
             throws InvalidSettingsException {
         DataTableSpec inSpec = (DataTableSpec)inSpecs[0];
 
-        DataColumnSpec classSpec = inSpec.getColumnSpec(m_classColumn.getColumnName());
+        DataColumnSpec classSpec = inSpec.getColumnSpec(m_classColumn.getStringValue());
         if (classSpec != null && classSpec.getDomain().getValues() != null) {
             int num = classSpec.getDomain().getValues().size() - 1;
             if (m_k.getIntValue() > num) {
@@ -214,10 +215,16 @@ public class LDANodeModel extends NodeModel {
      * {@inheritDoc}
      */
     @Override
-    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings)
-            throws InvalidSettingsException {
+    protected void loadValidatedSettingsFrom(final NodeSettingsRO settings) throws InvalidSettingsException {
         m_k.loadSettingsFrom(settings);
-        m_classColumn.loadSettingsFrom(settings);
+        try {
+            m_classColumn.loadSettingsFrom(settings);
+        } catch (InvalidSettingsException exc) {
+            // avoid regression warning after AP-10106 (case 3: remove ROWID from class selection)
+            SettingsModelColumnName tmp = new SettingsModelColumnName(CLASS_COL_CFG, null);
+            tmp.loadSettingsFrom(settings);
+            m_classColumn.setStringValue(tmp.getStringValue());
+        }
         m_usedCols.loadSettingsFrom(settings);
     }
 
@@ -228,7 +235,11 @@ public class LDANodeModel extends NodeModel {
     protected void validateSettings(final NodeSettingsRO settings)
             throws InvalidSettingsException {
         m_k.validateSettings(settings);
-        m_classColumn.validateSettings(settings);
+        try {
+            m_classColumn.validateSettings(settings);
+        } catch (InvalidSettingsException e) {
+            // pass
+        }
         m_usedCols.validateSettings(settings);
     }
 
