@@ -66,6 +66,7 @@ node {
         checkout scm
       }
 
+      try{
       stage('Maven/Tycho Build') {
         withMavenJarsignerCredentials {
           sh '''
@@ -75,7 +76,7 @@ node {
             mvn --settings /var/cache/m2/settings.xml clean install
             rm -rf "${TEMP}"
           '''
-	}
+	      }
       }
 
       stage('Stage Build Artifacts') {
@@ -91,6 +92,12 @@ node {
           cp -a ${WORKSPACE}/org.knime.update.stats/target/repository/ /var/cache/build_artifacts/${JOB_NAME}
         '''
       }
+     	} catch (ex) {
+				currentBuild.result = 'FAILED'
+				throw ex
+			} finally {
+				notifications.notifyBuild(currentBuild.result);
+			} 
     }
   }
 }
