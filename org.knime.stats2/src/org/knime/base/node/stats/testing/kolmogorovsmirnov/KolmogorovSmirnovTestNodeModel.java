@@ -135,7 +135,7 @@ final class KolmogorovSmirnovTestNodeModel extends NodeModel {
         final double[] colData1 = new double[(int)m];
         final double[] colData2 = new double[(int)n];
 
-        for (final DataRow row : inTable.filter(TableFilter.materializeCols(inSpec, cellIndex1, cellIndex2))) {
+        for (final DataRow row : inTable.filter(TableFilter.materializeCols(cellIndex1, cellIndex2))) {
             progMon.setProgress(progCnt / (10.0 * inTable.size()));
             progCnt++;
             if (!row.getCell(cellIndex1).isMissing()) {
