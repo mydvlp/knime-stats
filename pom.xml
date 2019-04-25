@@ -35,6 +35,7 @@
 	<modules>
 		<module>org.knime.stats</module>
 		<module>org.knime.stats2</module>
+		<module>org.knime.features.stats</module>
 		<module>org.knime.features.stats2</module>
 		<module>org.knime.update.stats</module>
 	</modules>

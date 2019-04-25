@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
+   <feature url="features/org.knime.features.stats_3.8.0.qualifier.jar" id="org.knime.features.stats" version="3.8.0.qualifier"/>
    <feature url="features/org.knime.features.stats2_3.8.0.qualifier.jar" id="org.knime.features.stats2" version="3.8.0.qualifier"/>
 </site>
